@@ -145,8 +145,8 @@ public class testProblem {
         //printBlockFirstIndexArray();
 
         double hmm = solve(-numVariables);
-        System.out.println(solutionsFound);
-        System.out.println(hmm + "\n\n");
+       // System.out.println(solutionsFound);
+        //System.out.println(hmm + "\n\n");
         
         matchSolution = fileSolution - hmm;
         
@@ -329,7 +329,7 @@ public class testProblem {
         //if not all the way at top of tree, update the array to accomodate
         //assignment of new variable
         if (curVarIndex != -numVariables) {
-            //System.out.println("updated");
+           // System.out.println(curVarIndex);
             stoppedAt = update(curVarIndex);
             active_var -= 1;
             sat_var += 1;
@@ -340,6 +340,7 @@ public class testProblem {
         
         blockFromUpdate = (int)allData[blockIndexRow][index];
         
+        int sat = checkSatisfaction();
 
  
        // printArray();
@@ -347,14 +348,10 @@ public class testProblem {
         //printBlockFirstIndexArray();
         
         //if update didn't finish, problem can't be satisfied with this literal
-        //or if some clauses cannot be satisfied, or if all variables have been
-        //used, but not all clauses are satisfied (don't think that's possible,
-        //but thought it would be safe)
-        if (stoppedAt != numClauses
-                || (active_clauses + satisfied_clauses != numClauses)
-                || (active_var == 0  && satisfied_clauses != numClauses)) {
-/*            System.out.println("advance backwards");
-            System.out.println("stoppedAt: " + stoppedAt +". active_clauses: " +
+        //or if some clauses cannot be satisfied
+        if (stoppedAt != numClauses || sat == -1) {
+              //System.out.println("advance backwards");
+            /*System.out.println("stoppedAt: " + stoppedAt +". active_clauses: " +
                     active_clauses + ". satis_clauses: " + satisfied_clauses +
                     ". active_var: " + active_var);*/
                         
@@ -362,24 +359,10 @@ public class testProblem {
             sat_var -= 1;
             backtrack(stoppedAt, curVarIndex);
             return 0.0;
-        }
-        
-        
-        //find the next variable naively, then see if pure can find better
-        //within block. Try with heuristic if not
-        int naiveSol = naiveSplit();
-        int naiveBlock = (int)allData[blockIndexRow][naiveSol];
-        
+        }          
                 
         //if all the clauses are satisfied
-        //changing satisfaction criteria since need to satisfy everything in current block
-        /*need block of thing in naive solution equal current thing (since implies all
-        ones before are satisfied)
-        need to make sure blocks to right of it don't have satisfied variables 
-        if not every variable in block is satisfied
-        if the number of satisfied variables is greater than index of naive solution
-        need to makes sure entire block is then satisfied*/
-        if (satisfied_clauses == numClauses) {
+        else if (sat == 1) {
             //printSolution();
             solutionsFound += 1;
             backtrack(stoppedAt, curVarIndex);
@@ -388,34 +371,37 @@ public class testProblem {
             
             return 1.0;
         }
-        
+       
+        //find the next variable naively, then see if pure can find better
+        //within block. Try with heuristic if not
+        int naiveSol = naiveSplit();
         
         int newVar[] = unitClauseSplit(); 
         int newVarCol = newVar[0];
-        
                 
         //no unit clauses found to eliminate
         if(newVarCol == -1){                                     
             //then need to check for pure variables
-            newVar = pureVarSplit(naiveBlock);
+            newVar = pureVarSplit(naiveSol);
             newVarCol = newVar[0];
             //then if no pure variables, apply splitting heuritstic
             //if the split type is naive, don't need to run it again
             if(newVarCol == -1){
-                //System.out.print("heuristic, ");
+                
                 if (splitType.equals("naive")) {
                     newVarCol = naiveSol;
+                    //System.out.print("\nnaive, ");
                 } else {
-                    newVarCol = split(naiveBlock);
+                    newVarCol = split(naiveSol);
+                   // System.out.print("\nheuristic, ");
                 }
-
             }
             else {
-              //   System.out.print("pure, ");
+               //  System.out.print("\npure, ");
             }
         }
         else {
-           // System.out.print("unit, ");
+           // System.out.print("\nunit, ");
         }
         double probWeight = allData[total_row][newVarCol];
         
@@ -652,7 +638,7 @@ public class testProblem {
     }  
     
     /*sends to splitting heuristic depending on specified split type*/
-    public int split(int blockIndex){
+    public int split(int curCol){
         
         int varIndex = 0;
         
@@ -661,10 +647,10 @@ public class testProblem {
                break;
            
            case "MAC":
-               varIndex = numActiveClausesSplit(blockIndex);
+               varIndex = numActiveClausesSplit(curCol);
                break;
            case "MSAC":
-               varIndex = numSignedActiveClausesSplit(blockIndex);
+               varIndex = numSignedActiveClausesSplit(curCol);
                break;
             default:
                 //if not other type of input, do naive search
@@ -677,11 +663,11 @@ public class testProblem {
     
 
     //choose variable based on max amount of signed clauses still active
-    public int numSignedActiveClausesSplit(int curBlock) {
+    public int numSignedActiveClausesSplit(int curCol) {
         
          //get section of variables to work with
-        int beginInd = blockFirstIndex[curBlock];
-        int endInd = blockFirstIndex[curBlock + 1];
+        int beginInd = curCol;
+        int endInd = blockFirstIndex[(int)allData[blockIndexRow][curCol] + 1];
         
         //setting baseline amount
         int max_index = beginInd;
@@ -714,14 +700,12 @@ public class testProblem {
         return max_index;
     }
     
-
-    
     //choose variable based on amount of clauses still active
-    public int numActiveClausesSplit(int curBlock) {
+    public int numActiveClausesSplit(int curCol) {
         
         //get section of variables to work with
-        int beginInd = blockFirstIndex[curBlock];
-        int endInd = blockFirstIndex[curBlock + 1];
+        int beginInd = curCol;
+        int endInd = blockFirstIndex[(int)allData[blockIndexRow][curCol] + 1];
         
         //setting baseline amount
         int max_index = beginInd;
@@ -801,15 +785,14 @@ public class testProblem {
         return index;
     }
     
-      
      
-    public int[] pureVarSplit(int curBlock) {
+    public int[] pureVarSplit(int curCol) {
         int index = -1;
         int purity = 0;
         
         //not a choice variable, or no pure variables allowed, can't find
         //pure variable then
-        if((allData[total_row][blockFirstIndex[curBlock]] != -1) ||
+        if((allData[total_row][curCol] != -1.0) ||
                 pureVariables == false) {
             return new int[]{index, purity};
         }
@@ -818,8 +801,8 @@ public class testProblem {
         to do it here since will be at most v time and can't update var easily
         in regular update function since rest of code runs by clause*/
         
-        int beginInd = blockFirstIndex[curBlock];
-        int endInd = blockFirstIndex[curBlock + 1];
+        int beginInd = curCol;
+        int endInd = blockFirstIndex[(int)allData[blockIndexRow][curCol] + 1];
         
         for(int i = beginInd; i < endInd; i++){
             
@@ -879,10 +862,7 @@ public class testProblem {
                 }
                 
             }
-        }
-        
-      
-  
+        }        
         return new int[]{index, sign};
     }
     
@@ -947,5 +927,37 @@ public class testProblem {
         else {
             return 0;
         }
+    }
+    
+    
+    public int checkSatisfaction() {
+        //count number of satisfied clauses
+        int numSat = 0;
+
+        //tracks num satisfied and active variables for each clause
+        int sat;
+        int active;
+        
+        //go through all the clauses
+        for(int i = 0; i < numClauses; i++){
+            sat = (int)allData[i][satLitCountCol];
+            active = (int)allData[i][activeLitCountCol];
+            
+            //stop immediately if there is a clause with no active literals and unsatisfied
+            if(sat == 0 && active == 0) {
+                return -1;
+            }
+            //if clause is satisfied, add it to the count
+            if (sat > 0) {
+                numSat += 1;
+            }
+        }
+        //if all clauses satisfied
+        if(numSat == numClauses) { return 1; }
+        //got to end, but no more variables to satisfy
+        if(numSat != numClauses && active_var == 0) { return -1; }
+        //otherwise, carry on
+        else { return 0; }
+        
     }
 }

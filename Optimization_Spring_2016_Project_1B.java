@@ -40,9 +40,9 @@ public class Optimization_Spring_2016_Project_1B {
         
         
         //For each of 72 cases, label the data and create test instance of DPLL
-        for (int i = 5; i < 8; i++) {
+        for (int i = 5; i < 6; i++) {
             pw.println("\n" + fileNames[i]);
-            System.out.println("\n" + fileNames[i]);
+            //System.out.println("\n" + fileNames[i]);
             for (int j = 0; j < 5; j++) {
                //if (j ==1 || j == 2) { continue; }
                 pw.print(algTypes[j] + ", ");
