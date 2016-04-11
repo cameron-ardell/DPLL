@@ -343,7 +343,7 @@ public class testProblem {
         int sat = checkSatisfaction();
 
  
-       // printArray();
+        //printArray();
         //printActiveClauses();
         //printBlockFirstIndexArray();
         
@@ -410,7 +410,7 @@ public class testProblem {
             newVarCol = numVariables + 1;
         }
         
-      //  System.out.println("chose var: " + newVarCol + "\n");
+        //System.out.println("chose var: " + newVarCol + "\n");
         //System.out.println();
  
         //check to see if it's a choice variable
@@ -572,10 +572,17 @@ public class testProblem {
  
 
     public void backtrack(int stoppedOnClause, int curVarIndex){
+       // System.out.println("advance backwards on var: " + curVarIndex);
         int curVarCol = Math.abs(curVarIndex);
         
         //get sign of value
         int sign = (curVarIndex > 0 ) ? 1 : -1;
+        
+         //resetting things I did to compensate for sign issues with +-0
+        if(curVarIndex == numVariables + 1 || curVarIndex == -(numVariables + 1)){
+            curVarCol = 0;
+        }
+        
         //note that is no longer assigned
         allData[assignedBoolRow][curVarCol] = 0;
 
@@ -634,7 +641,10 @@ public class testProblem {
                 //(ha)
             }
 
-        } 
+        }
+        
+        //printArray();
+        //System.out.println();
     }  
     
     /*sends to splitting heuristic depending on specified split type*/
@@ -955,7 +965,7 @@ public class testProblem {
         //if all clauses satisfied
         if(numSat == numClauses) { return 1; }
         //got to end, but no more variables to satisfy
-        if(numSat != numClauses && active_var == 0) { return -1; }
+        //if(numSat != numClauses && active_var == 0) { return -1; }
         //otherwise, carry on
         else { return 0; }
         
