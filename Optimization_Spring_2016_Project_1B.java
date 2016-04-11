@@ -31,24 +31,25 @@ public class Optimization_Spring_2016_Project_1B {
        String[] algTypes = {"UCP", "PVE", "UCP_PVE", "max_active_clauses",
            "max_signed_active_clauses", "weighted_unit", "log_weighted_unit"};
        
-       //System.out.println("created arrays");
+       
        
         //creates a PrintWriter which will print data to a csv file as we run tests
         try (PrintWriter pw = new PrintWriter(new FileOutputStream(new File("DPLL.csv"), true))) {
 
         pw.println(" " + ", " + "seconds taken, UCPS, PVEs, VS, % of VS Possible, Difference from Solution" );
         
-        //System.out.println("wrote in title");
         
         //For each of 72 cases, label the data and create test instance of DPLL
-        for (int i = 0; i < fileNames.length; i++) {
+        for (int i = 5; i < 8; i++) {
             pw.println("\n" + fileNames[i]);
+            System.out.println("\n" + fileNames[i]);
             for (int j = 0; j < 5; j++) {
+               //if (j ==1 || j == 2) { continue; }
                 pw.print(algTypes[j] + ", ");
                     Optimization_Spring_2016_Project_1B prob = new Optimization_Spring_2016_Project_1B(fileNames[i], algTypes[j], pw);
-                 
-                //pw.println(" ");
+
             }
+          
         }
  
 

@@ -33,6 +33,8 @@ public class testProblem {
     private int numberOfUnitClauses;
     private int numPureVariables;
     
+    private int solutionsFound;
+    
     /*
     These hold the amount of aspects that are tracked for each variable
     and clause. Clauses descriptors are in columns to the right of each clause.
@@ -110,6 +112,8 @@ public class testProblem {
     //filename, unit clauses, pure variables, branching method
     testProblem(String fileName, int unit, int pure, String split) {
         
+        solutionsFound = 0;
+        
         //initializing variables I want to keep track of
         numberOfUnitClauses = 0;
         satisfied_clauses = 0;
@@ -141,7 +145,8 @@ public class testProblem {
         //printBlockFirstIndexArray();
 
         double hmm = solve(-numVariables);
-        //System.out.println(hmm + "\n\n");
+        System.out.println(solutionsFound);
+        System.out.println(hmm + "\n\n");
         
         matchSolution = fileSolution - hmm;
         
@@ -318,6 +323,8 @@ public class testProblem {
         
     public double solve(int curVarIndex) {
         int stoppedAt = numClauses;
+        int blockFromUpdate = 0;
+        //System.out.println(curVarIndex);
                    
         //if not all the way at top of tree, update the array to accomodate
         //assignment of new variable
@@ -325,10 +332,17 @@ public class testProblem {
             //System.out.println("updated");
             stoppedAt = update(curVarIndex);
             active_var -= 1;
-            sat_var += 1;          
+            sat_var += 1;
         }
+        int index = (int)Math.sqrt(curVarIndex * curVarIndex);
+            
+        if (index == numVariables + 1 || index == numVariables) {index = 0;}
+        
+        blockFromUpdate = (int)allData[blockIndexRow][index];
+        
+
  
-      //  printArray();
+       // printArray();
         //printActiveClauses();
         //printBlockFirstIndexArray();
         
@@ -343,16 +357,31 @@ public class testProblem {
             System.out.println("stoppedAt: " + stoppedAt +". active_clauses: " +
                     active_clauses + ". satis_clauses: " + satisfied_clauses +
                     ". active_var: " + active_var);*/
-            
-            
+                        
             active_var += 1;
             sat_var -= 1;
             backtrack(stoppedAt, curVarIndex);
             return 0.0;
         }
+        
+        
+        //find the next variable naively, then see if pure can find better
+        //within block. Try with heuristic if not
+        int naiveSol = naiveSplit();
+        int naiveBlock = (int)allData[blockIndexRow][naiveSol];
+        
+                
         //if all the clauses are satisfied
+        //changing satisfaction criteria since need to satisfy everything in current block
+        /*need block of thing in naive solution equal current thing (since implies all
+        ones before are satisfied)
+        need to make sure blocks to right of it don't have satisfied variables 
+        if not every variable in block is satisfied
+        if the number of satisfied variables is greater than index of naive solution
+        need to makes sure entire block is then satisfied*/
         if (satisfied_clauses == numClauses) {
             //printSolution();
+            solutionsFound += 1;
             backtrack(stoppedAt, curVarIndex);
             active_var += 1;
             sat_var -= 1;
@@ -366,30 +395,27 @@ public class testProblem {
         
                 
         //no unit clauses found to eliminate
-        if(newVarCol == -1){
-            
-            //find the next variable naively, then see if pure can find better
-            //within block. Try with heuristic if not
-            int naiveSol = naiveSplit();
-            
-            int curBlock = (int)allData[blockIndexRow][naiveSol];
-            
+        if(newVarCol == -1){                                     
             //then need to check for pure variables
-            newVar = pureVarSplit(curBlock);
+            newVar = pureVarSplit(naiveBlock);
             newVarCol = newVar[0];
             //then if no pure variables, apply splitting heuritstic
             //if the split type is naive, don't need to run it again
             if(newVarCol == -1){
+                //System.out.print("heuristic, ");
                 if (splitType.equals("naive")) {
                     newVarCol = naiveSol;
                 } else {
-                    newVarCol = split(curBlock);
+                    newVarCol = split(naiveBlock);
                 }
 
             }
             else {
-                 //System.out.print("pure, ");
+              //   System.out.print("pure, ");
             }
+        }
+        else {
+           // System.out.print("unit, ");
         }
         double probWeight = allData[total_row][newVarCol];
         
@@ -405,7 +431,7 @@ public class testProblem {
         boolean isChoice = (probWeight == -1) ? true : false;
         
         double actual_prob = 0.0;
-        
+                
         //if something wasn't picked by pure variable or unit clauses propogation
         if(newVar[0] == -1){
        
@@ -625,6 +651,7 @@ public class testProblem {
         } 
     }  
     
+    /*sends to splitting heuristic depending on specified split type*/
     public int split(int blockIndex){
         
         int varIndex = 0;
@@ -634,7 +661,6 @@ public class testProblem {
                break;
            
            case "MAC":
-               //System.out.println("hi");
                varIndex = numActiveClausesSplit(blockIndex);
                break;
            case "MSAC":
@@ -762,11 +788,10 @@ public class testProblem {
     
     
     public int naiveSplit(){
-        int index = 0;
+        int index = numVariables - 1;
             
         for(int i = 0; i < numVariables; i++){
             if(allData[assignedBoolRow][i] != 0) {
-                //System.out.println("skipped i. assignedboolrow says: " + allData[assignedBoolRow][i]);
                 continue;
             } else {
                 index = i;
